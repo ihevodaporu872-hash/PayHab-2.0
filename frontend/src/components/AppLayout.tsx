@@ -7,12 +7,10 @@ import {
   FileTextOutlined,
   ProjectOutlined,
   DollarOutlined,
-  LogoutOutlined,
   UnorderedListOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { useAuth } from '../store/AuthContext';
 
 const { Header, Sider, Content } = Layout;
 
@@ -20,7 +18,6 @@ export const AppLayout: FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { username, logout } = useAuth();
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
 
   const menuItems = [
@@ -77,16 +74,12 @@ export const AppLayout: FC = () => {
         />
       </Sider>
       <Layout>
-        <Header style={{ padding: '0 16px', background: colorBgContainer, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Header style={{ padding: '0 16px', background: colorBgContainer, display: 'flex', alignItems: 'center' }}>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Typography.Text>{username}</Typography.Text>
-            <Button type="text" icon={<LogoutOutlined />} onClick={() => { logout(); navigate('/login'); }} />
-          </div>
         </Header>
         <Content style={{ margin: 16 }}>
           <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG }}>

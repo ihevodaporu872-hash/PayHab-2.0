@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.auth import get_current_user
+from fastapi import APIRouter, HTTPException, status
 from app.models import ICostType
 from app.supabase_client import get_supabase
 
@@ -7,14 +6,14 @@ router = APIRouter(prefix="/api/v1/cost-types", tags=["cost_types"])
 
 
 @router.get("")
-def get_cost_types(user: dict = Depends(get_current_user)):
+def get_cost_types():
     sb = get_supabase()
     result = sb.table("cost_types").select("*").order("created_at").execute()
     return result.data
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_cost_type(body: ICostType, user: dict = Depends(get_current_user)):
+def create_cost_type(body: ICostType):
     sb = get_supabase()
     data = body.model_dump(exclude={"id"}, exclude_none=True)
     result = sb.table("cost_types").insert(data).execute()
@@ -22,7 +21,7 @@ def create_cost_type(body: ICostType, user: dict = Depends(get_current_user)):
 
 
 @router.put("/{cost_type_id}")
-def update_cost_type(cost_type_id: str, body: ICostType, user: dict = Depends(get_current_user)):
+def update_cost_type(cost_type_id: str, body: ICostType):
     sb = get_supabase()
     data = body.model_dump(exclude={"id"}, exclude_none=True)
     result = sb.table("cost_types").update(data).eq("id", cost_type_id).execute()
@@ -32,6 +31,6 @@ def update_cost_type(cost_type_id: str, body: ICostType, user: dict = Depends(ge
 
 
 @router.delete("/{cost_type_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cost_type(cost_type_id: str, user: dict = Depends(get_current_user)):
+def delete_cost_type(cost_type_id: str):
     sb = get_supabase()
     sb.table("cost_types").delete().eq("id", cost_type_id).execute()

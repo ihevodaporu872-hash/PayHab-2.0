@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from app.auth import get_current_user
+from fastapi import APIRouter, HTTPException, status, Query
 from app.models import IMaterialRequest, IMaterialRequestItem, IMaterialRequestComment
 from app.supabase_client import get_supabase
 from typing import Optional, List
@@ -9,10 +8,7 @@ router = APIRouter(prefix="/api/v1/material-requests", tags=["material_requests"
 
 
 @router.get("")
-def get_requests(
-    status_filter: Optional[str] = Query(None, alias="status"),
-    user: dict = Depends(get_current_user),
-):
+def get_requests(status_filter: Optional[str] = Query(None, alias="status")):
     sb = get_supabase()
     q = sb.table("material_requests").select("*, projects(name), cost_types(name)")
     if status_filter:
@@ -22,7 +18,7 @@ def get_requests(
 
 
 @router.get("/{request_id}")
-def get_request(request_id: str, user: dict = Depends(get_current_user)):
+def get_request(request_id: str):
     sb = get_supabase()
     result = sb.table("material_requests").select(
         "*, projects(name), cost_types(name), estimate_sections(name)"
@@ -33,19 +29,15 @@ def get_request(request_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_request(body: IMaterialRequest, user: dict = Depends(get_current_user)):
+def create_request(body: IMaterialRequest):
     sb = get_supabase()
-    # Получаем user_id
-    user_result = sb.table("users").select("id").eq("username", user["username"]).execute()
     data = body.model_dump(exclude={"id", "request_number"}, exclude_none=True)
-    if user_result.data:
-        data["created_by"] = user_result.data[0]["id"]
     result = sb.table("material_requests").insert(data).execute()
     return result.data[0]
 
 
 @router.put("/{request_id}")
-def update_request(request_id: str, body: IMaterialRequest, user: dict = Depends(get_current_user)):
+def update_request(request_id: str, body: IMaterialRequest):
     sb = get_supabase()
     data = body.model_dump(exclude={"id", "request_number", "created_by"}, exclude_none=True)
     data["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -56,14 +48,12 @@ def update_request(request_id: str, body: IMaterialRequest, user: dict = Depends
 
 
 @router.post("/{request_id}/send")
-def send_request(request_id: str, user: dict = Depends(get_current_user)):
+def send_request(request_id: str):
     sb = get_supabase()
-    # Проверяем заявку
     req = sb.table("material_requests").select("*").eq("id", request_id).execute()
     if not req.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
     request_data = req.data[0]
-    # Для "Превышение сметы" обязательно обоснование
     if request_data["request_type"] == "over_estimate" and not request_data.get("justification"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -78,7 +68,7 @@ def send_request(request_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_request(request_id: str, user: dict = Depends(get_current_user)):
+def delete_request(request_id: str):
     sb = get_supabase()
     sb.table("material_requests").delete().eq("id", request_id).execute()
 
@@ -86,7 +76,7 @@ def delete_request(request_id: str, user: dict = Depends(get_current_user)):
 # --- Items ---
 
 @router.get("/{request_id}/items")
-def get_items(request_id: str, user: dict = Depends(get_current_user)):
+def get_items(request_id: str):
     sb = get_supabase()
     result = sb.table("material_request_items").select("*").eq(
         "request_id", request_id
@@ -95,11 +85,9 @@ def get_items(request_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{request_id}/items", status_code=status.HTTP_201_CREATED)
-def save_items(request_id: str, items: List[IMaterialRequestItem], user: dict = Depends(get_current_user)):
+def save_items(request_id: str, items: List[IMaterialRequestItem]):
     sb = get_supabase()
-    # Удаляем старые
     sb.table("material_request_items").delete().eq("request_id", request_id).execute()
-    # Вставляем новые
     rows = []
     for i, item in enumerate(items):
         row = item.model_dump(exclude={"id"}, exclude_none=True)
@@ -115,7 +103,7 @@ def save_items(request_id: str, items: List[IMaterialRequestItem], user: dict = 
 # --- Comments ---
 
 @router.get("/{request_id}/comments")
-def get_comments(request_id: str, user: dict = Depends(get_current_user)):
+def get_comments(request_id: str):
     sb = get_supabase()
     result = sb.table("material_request_comments").select("*").eq(
         "request_id", request_id
@@ -124,13 +112,9 @@ def get_comments(request_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{request_id}/comments", status_code=status.HTTP_201_CREATED)
-def add_comment(request_id: str, body: IMaterialRequestComment, user: dict = Depends(get_current_user)):
+def add_comment(request_id: str, body: IMaterialRequestComment):
     sb = get_supabase()
-    user_result = sb.table("users").select("id").eq("username", user["username"]).execute()
     data = body.model_dump(exclude={"id"}, exclude_none=True)
     data["request_id"] = request_id
-    data["username"] = user["username"]
-    if user_result.data:
-        data["user_id"] = user_result.data[0]["id"]
     result = sb.table("material_request_comments").insert(data).execute()
     return result.data[0]
