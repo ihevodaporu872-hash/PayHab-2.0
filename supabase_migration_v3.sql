@@ -8,6 +8,7 @@ create table if not exists warehouses (
 );
 
 alter table warehouses enable row level security;
+drop policy if exists "service_role_all" on warehouses;
 create policy "service_role_all" on warehouses for all using (true);
 
 -- 2. Новые поля в material_requests
