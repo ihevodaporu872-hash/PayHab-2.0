@@ -144,6 +144,21 @@ export const MaterialRequestFormPage: FC = () => {
       }
 
       await api.post(`/api/v1/material-requests/${requestId}/items`, items);
+
+      // Сохраняем локальные комментарии при создании новой заявки
+      if (isNew && comments.length > 0) {
+        for (const c of comments) {
+          await api.post(`/api/v1/material-requests/${requestId}/comments`, {
+            request_id: requestId,
+            text: c.text,
+            user_id: c.user_id,
+            username: c.username,
+            addressed_to: c.addressed_to || null,
+            addressed_to_name: c.addressed_to_name || null,
+          });
+        }
+      }
+
       message.success('Сохранено');
       if (isNew) navigate(`/requests/${requestId}`, { replace: true });
       else loadRequest();
@@ -164,23 +179,40 @@ export const MaterialRequestFormPage: FC = () => {
   };
 
   const handleAddComment = async () => {
-    if (!commentText.trim() || isNew || !commentAuthor) return;
+    if (!commentText.trim() || !commentAuthor) return;
     const author = users.find((u) => u.id === commentAuthor);
     const addressee = users.find((u) => u.id === commentAddressee);
-    try {
-      await api.post(`/api/v1/material-requests/${id}/comments`, {
-        request_id: id,
-        text: commentText,
-        user_id: commentAuthor,
-        username: author?.full_name || author?.username,
-        addressed_to: commentAddressee || null,
-        addressed_to_name: addressee?.full_name || addressee?.username || null,
-      });
+    const newComment: IMaterialRequestComment = {
+      id: `local-${Date.now()}`,
+      request_id: id || '',
+      text: commentText,
+      user_id: commentAuthor,
+      username: author?.full_name || author?.username,
+      addressed_to: commentAddressee,
+      addressed_to_name: addressee?.full_name || addressee?.username,
+      created_at: new Date().toISOString(),
+    };
+
+    if (!isNew && id) {
+      try {
+        await api.post(`/api/v1/material-requests/${id}/comments`, {
+          request_id: id,
+          text: commentText,
+          user_id: commentAuthor,
+          username: newComment.username,
+          addressed_to: commentAddressee || null,
+          addressed_to_name: newComment.addressed_to_name || null,
+        });
+        setCommentText('');
+        setCommentAddressee(undefined);
+        const data = await api.get(`/api/v1/material-requests/${id}/comments`);
+        setComments(data);
+      } catch { message.error('Ошибка добавления комментария'); }
+    } else {
+      setComments([...comments, newComment]);
       setCommentText('');
       setCommentAddressee(undefined);
-      const data = await api.get(`/api/v1/material-requests/${id}/comments`);
-      setComments(data);
-    } catch { message.error('Ошибка добавления комментария'); }
+    }
   };
 
   const baseColumns = [
@@ -375,75 +407,71 @@ export const MaterialRequestFormPage: FC = () => {
         )}
       </Space>
 
-      {!isNew && (
-        <>
-          <Divider>Комментарии</Divider>
-          <Card size="small" style={{ maxWidth: 800 }}>
-            <List
-              dataSource={comments}
-              locale={{ emptyText: 'Нет комментариев' }}
-              renderItem={(c) => (
-                <List.Item>
-                  <List.Item.Meta
-                    title={
-                      <Space size={4} wrap>
-                        <Typography.Text strong>{c.username || 'Пользователь'}</Typography.Text>
-                        {c.addressed_to_name && (
-                          <Typography.Text type="secondary">
-                            &rarr; {c.addressed_to_name}
-                          </Typography.Text>
-                        )}
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                          {dayjs(c.created_at).format('DD.MM.YYYY HH:mm')}
-                        </Typography.Text>
-                      </Space>
-                    }
-                    description={<div style={{ whiteSpace: 'pre-wrap' }}>{c.text}</div>}
-                  />
-                </List.Item>
-              )}
-            />
-            <Divider style={{ margin: '12px 0' }} />
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Select
-                placeholder="От кого"
-                value={commentAuthor}
-                onChange={setCommentAuthor}
-                showSearch
-                optionFilterProp="label"
-                options={users.map((u) => ({ value: u.id, label: u.full_name || u.username }))}
-                style={{ minWidth: 180 }}
+      <Divider>Комментарии</Divider>
+      <Card size="small" style={{ maxWidth: 800 }}>
+        <List
+          dataSource={comments}
+          locale={{ emptyText: 'Нет комментариев' }}
+          renderItem={(c) => (
+            <List.Item>
+              <List.Item.Meta
+                title={
+                  <Space size={4} wrap>
+                    <Typography.Text strong>{c.username || 'Пользователь'}</Typography.Text>
+                    {c.addressed_to_name && (
+                      <Typography.Text type="secondary">
+                        &rarr; {c.addressed_to_name}
+                      </Typography.Text>
+                    )}
+                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                      {dayjs(c.created_at).format('DD.MM.YYYY HH:mm')}
+                    </Typography.Text>
+                  </Space>
+                }
+                description={<div style={{ whiteSpace: 'pre-wrap' }}>{c.text}</div>}
               />
-              <Select
-                placeholder="Кому (адресат)"
-                value={commentAddressee}
-                onChange={setCommentAddressee}
-                showSearch
-                optionFilterProp="label"
-                options={users.map((u) => ({ value: u.id, label: u.full_name || u.username }))}
-                style={{ minWidth: 180 }}
-                allowClear
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <Input.TextArea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Введите комментарий..."
-                rows={2}
-                style={{ flex: 1 }}
-              />
-              <Button
-                type="primary"
-                onClick={handleAddComment}
-                disabled={!commentText.trim() || !commentAuthor}
-              >
-                Отправить
-              </Button>
-            </div>
-          </Card>
-        </>
-      )}
+            </List.Item>
+          )}
+        />
+        <Divider style={{ margin: '12px 0' }} />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Select
+            placeholder="От кого"
+            value={commentAuthor}
+            onChange={setCommentAuthor}
+            showSearch
+            optionFilterProp="label"
+            options={users.map((u) => ({ value: u.id, label: u.full_name || u.username }))}
+            style={{ minWidth: 180 }}
+          />
+          <Select
+            placeholder="Кому (адресат)"
+            value={commentAddressee}
+            onChange={setCommentAddressee}
+            showSearch
+            optionFilterProp="label"
+            options={users.map((u) => ({ value: u.id, label: u.full_name || u.username }))}
+            style={{ minWidth: 180 }}
+            allowClear
+          />
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <Input.TextArea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            placeholder="Введите комментарий..."
+            rows={2}
+            style={{ flex: 1 }}
+          />
+          <Button
+            type="primary"
+            onClick={handleAddComment}
+            disabled={!commentText.trim() || !commentAuthor}
+          >
+            Отправить
+          </Button>
+        </div>
+      </Card>
     </>
   );
 };
