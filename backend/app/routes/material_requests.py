@@ -80,6 +80,11 @@ def send_request(request_id: str):
     if not req.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
     request_data = req.data[0]
+    if request_data["request_type"] == "over_estimate" and not request_data.get("justification"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="��ля заявки 'Превышение сметы' обязательно обоснование",
+        )
     result = sb.table("material_requests").update({
         "status": "sent",
         "sent_at": datetime.now(timezone.utc).isoformat(),

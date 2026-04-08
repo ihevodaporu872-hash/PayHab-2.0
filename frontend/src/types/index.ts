@@ -35,9 +35,16 @@ export const MODULE_LABELS: Record<RequestModule, string> = {
   material: 'Заявка-Материал',
 };
 
-export type RequestType = 'by_estimate' | 'urgent' | 'by_specification';
+export type RequestType = 'by_estimate' | 'urgent' | 'by_specification' | 'over_estimate';
 
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
+  by_estimate: 'По смете',
+  urgent: 'Авральная',
+  by_specification: 'По спецификации СМ',
+  over_estimate: 'Пре��ышение сметы',
+};
+
+export const MATERIAL_REQUEST_TYPE_LABELS: Record<string, string> = {
   by_estimate: 'По смете',
   urgent: 'Авральная',
   by_specification: 'По спецификации СМ',
@@ -109,9 +116,19 @@ export interface IMaterialRequestItem {
   request_id?: string;
   sort_order: number;
   material?: string;
+  unit?: string;
+  volume?: number;
+  consumption_rate?: number;
+  total_consumption?: number;
+  price?: number;
+  cost?: number;
+  new_volume?: number;
+  new_consumption_rate?: number;
+  new_total_consumption?: number;
+  new_price?: number;
+  new_cost?: number;
   manufacturer?: string;
   manager?: string;
-  unit?: string;
   quantity?: number;
 }
 
