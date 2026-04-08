@@ -86,6 +86,8 @@ export interface IMaterialRequestComment {
   request_id: string;
   user_id?: string;
   username?: string;
+  addressed_to?: string;
+  addressed_to_name?: string;
   text: string;
   created_at: string;
 }

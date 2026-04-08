@@ -76,6 +76,8 @@ create table material_request_comments (
   request_id uuid not null references material_requests(id) on delete cascade,
   user_id uuid references users(id),
   username text,
+  addressed_to uuid references users(id),
+  addressed_to_name text,
   text text not null,
   created_at timestamptz default now()
 );

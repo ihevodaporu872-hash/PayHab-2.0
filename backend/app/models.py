@@ -116,4 +116,6 @@ class IMaterialRequestComment(BaseModel):
     request_id: str
     user_id: Optional[str] = None
     username: Optional[str] = None
+    addressed_to: Optional[str] = None
+    addressed_to_name: Optional[str] = None
     text: str
