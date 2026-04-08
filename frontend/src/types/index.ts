@@ -35,13 +35,12 @@ export const MODULE_LABELS: Record<RequestModule, string> = {
   material: 'Заявка-Материал',
 };
 
-export type RequestType = 'by_estimate' | 'urgent' | 'by_specification' | 'over_estimate';
+export type RequestType = 'by_estimate' | 'urgent' | 'by_specification';
 
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   by_estimate: 'По смете',
   urgent: 'Авральная',
   by_specification: 'По спецификации СМ',
-  over_estimate: 'Превышение сметы',
 };
 
 export const REQUEST_STATUS_LABELS: Record<string, string> = {
@@ -74,6 +73,12 @@ export interface IApprovalStage {
   created_at?: string;
 }
 
+export interface IWarehouse {
+  id: string;
+  name: string;
+  created_at?: string;
+}
+
 export interface IMaterialRequest {
   id: string;
   request_number: number;
@@ -85,6 +90,9 @@ export interface IMaterialRequest {
   estimate_section_id?: string;
   manual_estimate_section?: string;
   cost_type_id?: string;
+  warehouse_id?: string;
+  order_date_from?: string;
+  order_date_to?: string;
   justification?: string;
   status: string;
   created_by?: string;
@@ -92,6 +100,7 @@ export interface IMaterialRequest {
   projects?: { name: string };
   cost_types?: { name: string };
   estimate_sections?: { name: string };
+  warehouses?: { name: string };
   current_stage?: IApprovalStage | null;
 }
 
@@ -100,17 +109,10 @@ export interface IMaterialRequestItem {
   request_id?: string;
   sort_order: number;
   material?: string;
+  manufacturer?: string;
+  manager?: string;
   unit?: string;
-  volume?: number;
-  consumption_rate?: number;
-  total_consumption?: number;
-  price?: number;
-  cost?: number;
-  new_volume?: number;
-  new_consumption_rate?: number;
-  new_total_consumption?: number;
-  new_price?: number;
-  new_cost?: number;
+  quantity?: number;
 }
 
 export interface IMaterialRequestFile {

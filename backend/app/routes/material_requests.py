@@ -13,7 +13,7 @@ def get_requests(
     module: Optional[str] = Query(None),
 ):
     sb = get_supabase()
-    q = sb.table("material_requests").select("*, projects(name), cost_types(name)")
+    q = sb.table("material_requests").select("*, projects(name), cost_types(name), warehouses(name)")
     if module:
         q = q.eq("module", module)
     if status_filter:
@@ -47,7 +47,7 @@ def get_requests(
 def get_request(request_id: str):
     sb = get_supabase()
     result = sb.table("material_requests").select(
-        "*, projects(name), cost_types(name), estimate_sections(name)"
+        "*, projects(name), cost_types(name), estimate_sections(name), warehouses(name)"
     ).eq("id", request_id).execute()
     if not result.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
@@ -80,11 +80,6 @@ def send_request(request_id: str):
     if not req.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заявка не найдена")
     request_data = req.data[0]
-    if request_data["request_type"] == "over_estimate" and not request_data.get("justification"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Для заявки 'Превышение сметы' обязательно обоснование",
-        )
     result = sb.table("material_requests").update({
         "status": "sent",
         "sent_at": datetime.now(timezone.utc).isoformat(),

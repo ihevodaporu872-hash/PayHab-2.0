@@ -2,13 +2,13 @@ import { useEffect, useState, useCallback } from 'react';
 import type { FC } from 'react';
 import {
   Form, Input, Select, Button, Table, InputNumber, Typography, message, Space,
-  Divider, List, Switch, Card,
+  Divider, List, Switch, Card, DatePicker,
 } from 'antd';
 import { PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS } from '../types';
-import type { IUser, IProject, IEstimateSection, ICostType, IMaterialRequestItem, IMaterialRequestComment, IMaterialRequestFile, IApprovalStage, RequestType } from '../types';
+import type { IUser, IProject, IEstimateSection, ICostType, IWarehouse, IMaterialRequestItem, IMaterialRequestComment, IMaterialRequestFile, IApprovalStage, RequestType } from '../types';
 import { FileManager } from '../components/FileManager';
 import { DocumentViewer } from '../components/DocumentViewer';
 import { ApprovalTimeline } from '../components/ApprovalTimeline';
@@ -32,6 +32,7 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
   const [projects, setProjects] = useState<IProject[]>([]);
   const [sections, setSections] = useState<IEstimateSection[]>([]);
   const [costTypes, setCostTypes] = useState<ICostType[]>([]);
+  const [warehouses, setWarehouses] = useState<IWarehouse[]>([]);
   const [items, setItems] = useState<IMaterialRequestItem[]>([{ sort_order: 0 }]);
   const [users, setUsers] = useState<IUser[]>([]);
   const [files, setFiles] = useState<IMaterialRequestFile[]>([]);
@@ -50,18 +51,18 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
   const [sentAt, setSentAt] = useState<string | null>(null);
   const [status, setStatus] = useState('draft');
 
-  const isOverEstimate = requestType === 'over_estimate';
-
   const loadReferences = useCallback(async () => {
     try {
-      const [p, ct, u] = await Promise.all([
+      const [p, ct, u, w] = await Promise.all([
         api.get('/api/v1/projects'),
         api.get('/api/v1/cost-types'),
         api.get('/api/v1/users'),
+        api.get('/api/v1/warehouses'),
       ]);
       setProjects(p);
       setCostTypes(ct);
       setUsers(u);
+      setWarehouses(w);
     } catch { message.error('Ошибка загрузки справочников'); }
   }, []);
 
@@ -88,6 +89,10 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
         estimate_section_id: req.estimate_section_id,
         manual_estimate_section: req.manual_estimate_section,
         cost_type_id: req.cost_type_id,
+        warehouse_id: req.warehouse_id,
+        order_dates: req.order_date_from && req.order_date_to
+          ? [dayjs(req.order_date_from), dayjs(req.order_date_to)]
+          : undefined,
         justification: req.justification,
       });
       setRequestType(req.request_type);
@@ -114,23 +119,7 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
 
   const updateItem = (index: number, field: string, value: unknown) => {
     const newItems = [...items];
-    const item = { ...newItems[index], [field]: value };
-
-    // Авторасчёт
-    if (['volume', 'consumption_rate'].includes(field)) {
-      item.total_consumption = (item.volume || 0) * (item.consumption_rate || 0);
-    }
-    if (['total_consumption', 'price'].includes(field)) {
-      item.cost = (item.total_consumption || 0) * (item.price || 0);
-    }
-    if (['new_volume', 'new_consumption_rate'].includes(field)) {
-      item.new_total_consumption = (item.new_volume || 0) * (item.new_consumption_rate || 0);
-    }
-    if (['new_total_consumption', 'new_price'].includes(field)) {
-      item.new_cost = (item.new_total_consumption || 0) * (item.new_price || 0);
-    }
-
-    newItems[index] = item;
+    newItems[index] = { ...newItems[index], [field]: value };
     setItems(newItems);
   };
 
@@ -140,15 +129,15 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      if (isOverEstimate && !values.justification?.trim()) {
-        message.error('Для "Превышение сметы" обязательно обоснование');
-        return;
-      }
       setSaving(true);
+      const orderDates = values.order_dates;
       const payload = {
         ...values,
         module,
         request_type: requestType,
+        order_dates: undefined,
+        order_date_from: orderDates?.[0]?.format('YYYY-MM-DD') || null,
+        order_date_to: orderDates?.[1]?.format('YYYY-MM-DD') || null,
         ...(manualEstimate
           ? { manual_estimate_section: values.manual_estimate_section, estimate_section_id: null }
           : { estimate_section_id: values.estimate_section_id, manual_estimate_section: null }),
@@ -234,7 +223,7 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
     }
   };
 
-  const baseColumns = [
+  const tableColumns = [
     {
       title: '№ п/п', key: 'index', width: 60, fixed: 'left' as const,
       render: (_: unknown, __: unknown, i: number) => i + 1,
@@ -246,86 +235,36 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
       ),
     },
     {
-      title: 'Ед. материала', key: 'unit', width: 100,
+      title: 'Наименование производителя', key: 'manufacturer', width: 220,
+      render: (_: unknown, __: unknown, i: number) => (
+        <Input value={items[i]?.manufacturer || ''} onChange={(e) => updateItem(i, 'manufacturer', e.target.value)} />
+      ),
+    },
+    {
+      title: 'Менеджер', key: 'manager', width: 180,
+      render: (_: unknown, __: unknown, i: number) => (
+        <Input value={items[i]?.manager || ''} onChange={(e) => updateItem(i, 'manager', e.target.value)} />
+      ),
+    },
+    {
+      title: 'Единица мат.', key: 'unit', width: 120,
       render: (_: unknown, __: unknown, i: number) => (
         <Input value={items[i]?.unit || ''} onChange={(e) => updateItem(i, 'unit', e.target.value)} />
       ),
     },
     {
-      title: 'Объем по материалу', key: 'volume', width: 140,
+      title: 'Кол-во', key: 'quantity', width: 120,
       render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.volume} onChange={(v) => updateItem(i, 'volume', v)} style={{ width: '100%' }} />
+        <InputNumber value={items[i]?.quantity} onChange={(v) => updateItem(i, 'quantity', v)} style={{ width: '100%' }} />
       ),
     },
     {
-      title: 'Норма расхода', key: 'consumption_rate', width: 130,
+      title: '', key: 'actions', width: 50, fixed: 'right' as const,
       render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.consumption_rate} onChange={(v) => updateItem(i, 'consumption_rate', v)} style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Общ.расход', key: 'total_consumption', width: 130,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.total_consumption} disabled style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Цена', key: 'price', width: 120,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.price} onChange={(v) => updateItem(i, 'price', v)} style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Стоимость', key: 'cost', width: 130,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.cost} disabled style={{ width: '100%' }} />
+        items.length > 1 ? <Button type="link" danger icon={<DeleteOutlined />} onClick={() => removeRow(i)} /> : null
       ),
     },
   ];
-
-  const overEstimateColumns = [
-    {
-      title: 'Объем (новый)', key: 'new_volume', width: 140,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.new_volume} onChange={(v) => updateItem(i, 'new_volume', v)} style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Норма расхода (новый)', key: 'new_consumption_rate', width: 160,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.new_consumption_rate} onChange={(v) => updateItem(i, 'new_consumption_rate', v)} style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Общ.расход (новый)', key: 'new_total_consumption', width: 160,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.new_total_consumption} disabled style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Цена (новая)', key: 'new_price', width: 130,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.new_price} onChange={(v) => updateItem(i, 'new_price', v)} style={{ width: '100%' }} />
-      ),
-    },
-    {
-      title: 'Стоимость (новая)', key: 'new_cost', width: 150,
-      render: (_: unknown, __: unknown, i: number) => (
-        <InputNumber value={items[i]?.new_cost} disabled style={{ width: '100%' }} />
-      ),
-    },
-  ];
-
-  const actionColumn = {
-    title: '', key: 'actions', width: 50, fixed: 'right' as const,
-    render: (_: unknown, __: unknown, i: number) => (
-      items.length > 1 ? <Button type="link" danger icon={<DeleteOutlined />} onClick={() => removeRow(i)} /> : null
-    ),
-  };
-
-  const tableColumns = isOverEstimate
-    ? [...baseColumns, ...overEstimateColumns, actionColumn]
-    : [...baseColumns, actionColumn];
 
   return (
     <>
@@ -349,6 +288,25 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
             optionFilterProp="label"
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
             onChange={handleProjectChange}
+          />
+        </Form.Item>
+
+        <Form.Item name="warehouse_id" label="Склад">
+          <Select
+            placeholder="Выберите склад"
+            showSearch
+            optionFilterProp="label"
+            options={warehouses.map((w) => ({ value: w.id, label: w.name }))}
+            allowClear
+          />
+        </Form.Item>
+
+        <Form.Item name="order_dates" label="Заказ на">
+          <DatePicker.RangePicker
+            picker="week"
+            format="DD.MM.YYYY"
+            style={{ width: '100%' }}
+            placeholder={['с', 'по']}
           />
         </Form.Item>
 
@@ -389,16 +347,6 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
             allowClear
           />
         </Form.Item>
-
-        {isOverEstimate && (
-          <Form.Item
-            name="justification"
-            label="Обоснование внесения изменений"
-            rules={[{ required: true, message: 'Обязательно для заявки "Превышение сметы"' }]}
-          >
-            <Input.TextArea rows={4} placeholder="Укажите обоснование..." />
-          </Form.Item>
-        )}
       </Form>
 
       <Divider>Материалы</Divider>
@@ -408,7 +356,7 @@ export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) =>
         columns={tableColumns}
         rowKey={(_, i) => String(i)}
         pagination={false}
-        scroll={{ x: isOverEstimate ? 1800 : 1100 }}
+        scroll={{ x: 1000 }}
         size="small"
         footer={() => (
           <Button type="dashed" block icon={<PlusOutlined />} onClick={addRow}>

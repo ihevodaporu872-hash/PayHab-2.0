@@ -80,6 +80,11 @@ class ICostType(BaseModel):
 
 # --- Material Request ---
 
+class IWarehouse(BaseModel):
+    id: Optional[str] = None
+    name: str
+
+
 class IMaterialRequest(BaseModel):
     id: Optional[str] = None
     request_number: Optional[int] = None
@@ -89,6 +94,9 @@ class IMaterialRequest(BaseModel):
     estimate_section_id: Optional[str] = None
     manual_estimate_section: Optional[str] = None
     cost_type_id: Optional[str] = None
+    warehouse_id: Optional[str] = None
+    order_date_from: Optional[str] = None
+    order_date_to: Optional[str] = None
     justification: Optional[str] = None
     status: str = "draft"
     created_by: Optional[str] = None
@@ -99,17 +107,10 @@ class IMaterialRequestItem(BaseModel):
     request_id: Optional[str] = None
     sort_order: int = 0
     material: Optional[str] = None
+    manufacturer: Optional[str] = None
+    manager: Optional[str] = None
     unit: Optional[str] = None
-    volume: Optional[float] = None
-    consumption_rate: Optional[float] = None
-    total_consumption: Optional[float] = None
-    price: Optional[float] = None
-    cost: Optional[float] = None
-    new_volume: Optional[float] = None
-    new_consumption_rate: Optional[float] = None
-    new_total_consumption: Optional[float] = None
-    new_price: Optional[float] = None
-    new_cost: Optional[float] = None
+    quantity: Optional[float] = None
 
 
 class IApprovalStage(BaseModel):

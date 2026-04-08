@@ -22,6 +22,13 @@ create table estimate_sections (
   created_at timestamptz default now()
 );
 
+-- Склады
+create table warehouses (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  created_at timestamptz default now()
+);
+
 -- Виды затрат
 create table cost_types (
   id uuid primary key default gen_random_uuid(),
@@ -41,10 +48,13 @@ create table material_requests (
   sent_at timestamptz,
   project_id uuid references projects(id),
   module text not null default 'object' check (module in ('object', 'material')),
-  request_type text not null check (request_type in ('by_estimate', 'urgent', 'by_specification', 'over_estimate')),
+  request_type text not null check (request_type in ('by_estimate', 'urgent', 'by_specification')),
   estimate_section_id uuid references estimate_sections(id),
   manual_estimate_section text,
   cost_type_id uuid references cost_types(id),
+  warehouse_id uuid references warehouses(id),
+  order_date_from date,
+  order_date_to date,
   justification text,
   status text default 'draft',
   created_by uuid references users(id),
@@ -57,17 +67,10 @@ create table material_request_items (
   request_id uuid not null references material_requests(id) on delete cascade,
   sort_order int not null default 0,
   material text,
+  manufacturer text,
+  manager text,
   unit text,
-  volume numeric(15,4),
-  consumption_rate numeric(15,4),
-  total_consumption numeric(15,4),
-  price numeric(15,2),
-  cost numeric(15,2),
-  new_volume numeric(15,4),
-  new_consumption_rate numeric(15,4),
-  new_total_consumption numeric(15,4),
-  new_price numeric(15,2),
-  new_cost numeric(15,2),
+  quantity numeric(15,4),
   created_at timestamptz default now()
 );
 
@@ -113,6 +116,7 @@ create table approval_stages (
 alter table projects enable row level security;
 alter table estimate_sections enable row level security;
 alter table cost_types enable row level security;
+alter table warehouses enable row level security;
 alter table material_requests enable row level security;
 alter table material_request_items enable row level security;
 alter table material_request_comments enable row level security;
@@ -122,6 +126,7 @@ alter table approval_stages enable row level security;
 create policy "service_role_all" on projects for all using (true);
 create policy "service_role_all" on estimate_sections for all using (true);
 create policy "service_role_all" on cost_types for all using (true);
+create policy "service_role_all" on warehouses for all using (true);
 create policy "service_role_all" on material_requests for all using (true);
 create policy "service_role_all" on material_request_items for all using (true);
 create policy "service_role_all" on material_request_comments for all using (true);
