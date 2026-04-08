@@ -8,9 +8,10 @@ import { PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from '@ant-d
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS } from '../types';
-import type { IUser, IProject, IEstimateSection, ICostType, IMaterialRequestItem, IMaterialRequestComment, IMaterialRequestFile, RequestType } from '../types';
+import type { IUser, IProject, IEstimateSection, ICostType, IMaterialRequestItem, IMaterialRequestComment, IMaterialRequestFile, IApprovalStage, RequestType } from '../types';
 import { FileManager } from '../components/FileManager';
 import { DocumentViewer } from '../components/DocumentViewer';
+import { ApprovalTimeline } from '../components/ApprovalTimeline';
 import dayjs from 'dayjs';
 
 const requestTypeOptions = Object.entries(REQUEST_TYPE_LABELS).map(([value, label]) => ({ value, label }));
@@ -29,6 +30,7 @@ export const MaterialRequestFormPage: FC = () => {
   const [files, setFiles] = useState<IMaterialRequestFile[]>([]);
   const [viewerFile, setViewerFile] = useState<IMaterialRequestFile | null>(null);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [stages, setStages] = useState<IApprovalStage[]>([]);
   const [comments, setComments] = useState<IMaterialRequestComment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [commentAuthor, setCommentAuthor] = useState<string | undefined>();
@@ -66,11 +68,12 @@ export const MaterialRequestFormPage: FC = () => {
   const loadRequest = useCallback(async () => {
     if (isNew) return;
     try {
-      const [req, reqItems, reqComments, reqFiles] = await Promise.all([
+      const [req, reqItems, reqComments, reqFiles, reqStages] = await Promise.all([
         api.get(`/api/v1/material-requests/${id}`),
         api.get(`/api/v1/material-requests/${id}/items`),
         api.get(`/api/v1/material-requests/${id}/comments`),
         api.get(`/api/v1/material-requests/${id}/files`),
+        api.get(`/api/v1/material-requests/${id}/stages`),
       ]);
       form.setFieldsValue({
         project_id: req.project_id,
@@ -89,6 +92,7 @@ export const MaterialRequestFormPage: FC = () => {
       if (req.project_id) loadSections(req.project_id);
       setItems(reqItems.length > 0 ? reqItems : [{ sort_order: 0 }]);
       setFiles(reqFiles);
+      setStages(reqStages);
       setComments(reqComments);
     } catch { message.error('Ошибка загрузки заявки'); }
   }, [id, isNew, form]);
@@ -413,6 +417,15 @@ export const MaterialRequestFormPage: FC = () => {
           </Button>
         )}
       </Space>
+
+      <Divider>Этапы согласования</Divider>
+      <ApprovalTimeline
+        requestId={isNew ? undefined : id}
+        stages={stages}
+        users={users}
+        isNew={isNew}
+        onStagesChange={loadRequest}
+      />
 
       <Divider>Документы</Divider>
       <Card size="small" style={{ maxWidth: 800 }}>

@@ -4,8 +4,8 @@ import { Table, Button, Typography, Tag, Space, message } from 'antd';
 import { PlusOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS } from '../types';
-import type { IMaterialRequest, RequestType } from '../types';
+import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS, APPROVAL_STATUS_LABELS } from '../types';
+import type { IMaterialRequest, RequestType, ApprovalStatus } from '../types';
 import dayjs from 'dayjs';
 
 const statusColors: Record<string, string> = {
@@ -13,6 +13,14 @@ const statusColors: Record<string, string> = {
   sent: 'processing',
   approved: 'success',
   rejected: 'error',
+};
+
+const approvalStageColors: Record<string, string> = {
+  pending: 'default',
+  in_progress: 'processing',
+  approved: 'success',
+  rejected: 'error',
+  returned: 'warning',
 };
 
 export const MaterialRequestListPage: FC = () => {
@@ -51,6 +59,24 @@ export const MaterialRequestListPage: FC = () => {
     {
       title: 'Статус', dataIndex: 'status', key: 'status', width: 140,
       render: (v: string) => <Tag color={statusColors[v]}>{REQUEST_STATUS_LABELS[v] || v}</Tag>,
+    },
+    {
+      title: 'Этап согласования', key: 'current_stage', width: 200,
+      render: (_: unknown, r: IMaterialRequest) => {
+        const stage = r.current_stage;
+        if (!stage) return <Tag>—</Tag>;
+        return (
+          <Space direction="vertical" size={0}>
+            <Tag color={approvalStageColors[stage.status]}>
+              {stage.stage_name}
+            </Tag>
+            <span style={{ fontSize: 11, color: '#888' }}>
+              {APPROVAL_STATUS_LABELS[stage.status as ApprovalStatus] || stage.status}
+              {stage.approver_name ? ` · ${stage.approver_name}` : ''}
+            </span>
+          </Space>
+        );
+      },
     },
     {
       title: 'Действия', key: 'actions', width: 80,

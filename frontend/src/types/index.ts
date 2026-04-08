@@ -44,6 +44,29 @@ export const REQUEST_STATUS_LABELS: Record<string, string> = {
   rejected: 'Отклонена',
 };
 
+export type ApprovalStatus = 'pending' | 'in_progress' | 'approved' | 'rejected' | 'returned';
+
+export const APPROVAL_STATUS_LABELS: Record<ApprovalStatus, string> = {
+  pending: 'Ожидает',
+  in_progress: 'На рассмотрении',
+  approved: 'Согласовано',
+  rejected: 'Отклонено',
+  returned: 'Возвращено',
+};
+
+export interface IApprovalStage {
+  id?: string;
+  request_id?: string;
+  stage_order: number;
+  stage_name: string;
+  approver_id?: string;
+  approver_name?: string;
+  status: ApprovalStatus;
+  comment?: string;
+  decided_at?: string;
+  created_at?: string;
+}
+
 export interface IMaterialRequest {
   id: string;
   request_number: number;
@@ -61,6 +84,7 @@ export interface IMaterialRequest {
   projects?: { name: string };
   cost_types?: { name: string };
   estimate_sections?: { name: string };
+  current_stage?: IApprovalStage | null;
 }
 
 export interface IMaterialRequestItem {

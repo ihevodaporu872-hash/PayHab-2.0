@@ -111,6 +111,18 @@ class IMaterialRequestItem(BaseModel):
     new_cost: Optional[float] = None
 
 
+class IApprovalStage(BaseModel):
+    id: Optional[str] = None
+    request_id: Optional[str] = None
+    stage_order: int = 0
+    stage_name: str
+    approver_id: Optional[str] = None
+    approver_name: Optional[str] = None
+    status: str = "pending"
+    comment: Optional[str] = None
+    decided_at: Optional[str] = None
+
+
 class IMaterialRequestComment(BaseModel):
     id: Optional[str] = None
     request_id: str
