@@ -5,6 +5,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   FileTextOutlined,
+  ShoppingOutlined,
   ProjectOutlined,
   DollarOutlined,
   UnorderedListOutlined,
@@ -33,6 +34,23 @@ export const AppLayout: FC = () => {
         },
         {
           key: '/requests/new',
+          icon: <PlusOutlined />,
+          label: 'Новая заявка',
+        },
+      ],
+    },
+    {
+      key: 'mat-requests',
+      icon: <ShoppingOutlined />,
+      label: 'Заявка-Материал',
+      children: [
+        {
+          key: '/mat-requests',
+          icon: <UnorderedListOutlined />,
+          label: 'Список заявок',
+        },
+        {
+          key: '/mat-requests/new',
           icon: <PlusOutlined />,
           label: 'Новая заявка',
         },
@@ -68,7 +86,7 @@ export const AppLayout: FC = () => {
           theme="dark"
           mode="inline"
           selectedKeys={[location.pathname]}
-          defaultOpenKeys={['requests', 'references']}
+          defaultOpenKeys={['requests', 'mat-requests', 'references']}
           items={menuItems}
           onClick={({ key }) => navigate(key)}
         />

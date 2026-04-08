@@ -14,9 +14,16 @@ import { DocumentViewer } from '../components/DocumentViewer';
 import { ApprovalTimeline } from '../components/ApprovalTimeline';
 import dayjs from 'dayjs';
 
+import type { RequestModule } from '../types';
+
 const requestTypeOptions = Object.entries(REQUEST_TYPE_LABELS).map(([value, label]) => ({ value, label }));
 
-export const MaterialRequestFormPage: FC = () => {
+interface IFormProps {
+  module: RequestModule;
+  basePath: string;
+}
+
+export const MaterialRequestFormPage: FC<IFormProps> = ({ module, basePath }) => {
   const { id } = useParams<{ id: string }>();
   const isNew = !id || id === 'new';
   const navigate = useNavigate();
@@ -140,6 +147,7 @@ export const MaterialRequestFormPage: FC = () => {
       setSaving(true);
       const payload = {
         ...values,
+        module,
         request_type: requestType,
         ...(manualEstimate
           ? { manual_estimate_section: values.manual_estimate_section, estimate_section_id: null }
@@ -171,7 +179,7 @@ export const MaterialRequestFormPage: FC = () => {
       }
 
       message.success('Сохранено');
-      if (isNew) navigate(`/requests/${requestId}`, { replace: true });
+      if (isNew) navigate(`${basePath}/${requestId}`, { replace: true });
       else loadRequest();
     } catch { message.error('Ошибка сохранения'); }
     setSaving(false);

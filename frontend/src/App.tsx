@@ -13,9 +13,17 @@ const App: FC = () => (
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route path="/requests" element={<MaterialRequestListPage />} />
-          <Route path="/requests/new" element={<MaterialRequestFormPage />} />
-          <Route path="/requests/:id" element={<MaterialRequestFormPage />} />
+          {/* Заявка-Объект */}
+          <Route path="/requests" element={<MaterialRequestListPage module="object" basePath="/requests" />} />
+          <Route path="/requests/new" element={<MaterialRequestFormPage module="object" basePath="/requests" />} />
+          <Route path="/requests/:id" element={<MaterialRequestFormPage module="object" basePath="/requests" />} />
+
+          {/* Заявка-Материал */}
+          <Route path="/mat-requests" element={<MaterialRequestListPage module="material" basePath="/mat-requests" />} />
+          <Route path="/mat-requests/new" element={<MaterialRequestFormPage module="material" basePath="/mat-requests" />} />
+          <Route path="/mat-requests/:id" element={<MaterialRequestFormPage module="material" basePath="/mat-requests" />} />
+
+          {/* Справочники */}
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/cost-types" element={<CostTypesPage />} />
         </Route>

@@ -83,6 +83,7 @@ class ICostType(BaseModel):
 class IMaterialRequest(BaseModel):
     id: Optional[str] = None
     request_number: Optional[int] = None
+    module: str = "object"
     project_id: Optional[str] = None
     request_type: str
     estimate_section_id: Optional[str] = None

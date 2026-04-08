@@ -40,6 +40,7 @@ create table material_requests (
   created_at timestamptz default now(),
   sent_at timestamptz,
   project_id uuid references projects(id),
+  module text not null default 'object' check (module in ('object', 'material')),
   request_type text not null check (request_type in ('by_estimate', 'urgent', 'by_specification', 'over_estimate')),
   estimate_section_id uuid references estimate_sections(id),
   manual_estimate_section text,

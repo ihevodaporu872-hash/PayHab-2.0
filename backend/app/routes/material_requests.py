@@ -8,9 +8,14 @@ router = APIRouter(prefix="/api/v1/material-requests", tags=["material_requests"
 
 
 @router.get("")
-def get_requests(status_filter: Optional[str] = Query(None, alias="status")):
+def get_requests(
+    status_filter: Optional[str] = Query(None, alias="status"),
+    module: Optional[str] = Query(None),
+):
     sb = get_supabase()
     q = sb.table("material_requests").select("*, projects(name), cost_types(name)")
+    if module:
+        q = q.eq("module", module)
     if status_filter:
         q = q.eq("status", status_filter)
     result = q.order("created_at", desc=True).execute()

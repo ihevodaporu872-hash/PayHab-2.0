@@ -28,6 +28,13 @@ export interface ICostType {
   created_at?: string;
 }
 
+export type RequestModule = 'object' | 'material';
+
+export const MODULE_LABELS: Record<RequestModule, string> = {
+  object: 'Заявка-Объект',
+  material: 'Заявка-Материал',
+};
+
 export type RequestType = 'by_estimate' | 'urgent' | 'by_specification' | 'over_estimate';
 
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
@@ -74,6 +81,7 @@ export interface IMaterialRequest {
   sent_at?: string;
   project_id?: string;
   request_type: RequestType;
+  module: RequestModule;
   estimate_section_id?: string;
   manual_estimate_section?: string;
   cost_type_id?: string;

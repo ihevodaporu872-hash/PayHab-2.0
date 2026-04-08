@@ -4,8 +4,8 @@ import { Table, Button, Typography, Tag, Space, message } from 'antd';
 import { PlusOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
-import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS, APPROVAL_STATUS_LABELS } from '../types';
-import type { IMaterialRequest, RequestType, ApprovalStatus } from '../types';
+import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS, APPROVAL_STATUS_LABELS, MODULE_LABELS } from '../types';
+import type { IMaterialRequest, RequestType, RequestModule, ApprovalStatus } from '../types';
 import dayjs from 'dayjs';
 
 const statusColors: Record<string, string> = {
@@ -23,21 +23,27 @@ const approvalStageColors: Record<string, string> = {
   returned: 'warning',
 };
 
-export const MaterialRequestListPage: FC = () => {
+interface IProps {
+  module: RequestModule;
+  basePath: string;
+}
+
+export const MaterialRequestListPage: FC<IProps> = ({ module, basePath }) => {
   const [requests, setRequests] = useState<IMaterialRequest[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const title = MODULE_LABELS[module];
 
   const load = async () => {
     setLoading(true);
     try {
-      const data = await api.get('/api/v1/material-requests');
+      const data = await api.get(`/api/v1/material-requests?module=${module}`);
       setRequests(data);
     } catch { message.error('Ошибка загрузки'); }
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [module]);
 
   const columns = [
     { title: '№ запроса', dataIndex: 'request_number', key: 'request_number', width: 110 },
@@ -82,7 +88,7 @@ export const MaterialRequestListPage: FC = () => {
       title: 'Действия', key: 'actions', width: 80,
       render: (_: unknown, r: IMaterialRequest) => (
         <Space>
-          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`/requests/${r.id}`)} />
+          <Button type="link" icon={<EyeOutlined />} onClick={() => navigate(`${basePath}/${r.id}`)} />
         </Space>
       ),
     },
@@ -91,8 +97,8 @@ export const MaterialRequestListPage: FC = () => {
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>Запрос на материалы</Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/requests/new')}>
+        <Typography.Title level={4} style={{ margin: 0 }}>{title} — Запрос на материалы</Typography.Title>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate(`${basePath}/new`)}>
           Новая заявка
         </Button>
       </div>
