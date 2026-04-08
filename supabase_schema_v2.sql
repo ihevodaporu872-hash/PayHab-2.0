@@ -82,6 +82,18 @@ create table material_request_comments (
   created_at timestamptz default now()
 );
 
+-- Файлы заявки (хранятся в Supabase Storage, bucket: material-request-files)
+create table material_request_files (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references material_requests(id) on delete cascade,
+  filename text not null,
+  storage_path text not null,
+  content_type text,
+  size_bytes bigint,
+  annotations jsonb default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+
 -- RLS
 alter table projects enable row level security;
 alter table estimate_sections enable row level security;
@@ -89,6 +101,7 @@ alter table cost_types enable row level security;
 alter table material_requests enable row level security;
 alter table material_request_items enable row level security;
 alter table material_request_comments enable row level security;
+alter table material_request_files enable row level security;
 
 create policy "service_role_all" on projects for all using (true);
 create policy "service_role_all" on estimate_sections for all using (true);
@@ -96,3 +109,4 @@ create policy "service_role_all" on cost_types for all using (true);
 create policy "service_role_all" on material_requests for all using (true);
 create policy "service_role_all" on material_request_items for all using (true);
 create policy "service_role_all" on material_request_comments for all using (true);
+create policy "service_role_all" on material_request_files for all using (true);

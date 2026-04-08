@@ -81,6 +81,17 @@ export interface IMaterialRequestItem {
   new_cost?: number;
 }
 
+export interface IMaterialRequestFile {
+  id: string;
+  request_id: string;
+  filename: string;
+  storage_path: string;
+  content_type?: string;
+  size_bytes?: number;
+  annotations?: string;
+  created_at: string;
+}
+
 export interface IMaterialRequestComment {
   id: string;
   request_id: string;

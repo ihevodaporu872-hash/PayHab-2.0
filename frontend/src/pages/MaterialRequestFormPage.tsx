@@ -8,7 +8,9 @@ import { PlusOutlined, DeleteOutlined, SaveOutlined, SendOutlined } from '@ant-d
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { REQUEST_TYPE_LABELS, REQUEST_STATUS_LABELS } from '../types';
-import type { IUser, IProject, IEstimateSection, ICostType, IMaterialRequestItem, IMaterialRequestComment, RequestType } from '../types';
+import type { IUser, IProject, IEstimateSection, ICostType, IMaterialRequestItem, IMaterialRequestComment, IMaterialRequestFile, RequestType } from '../types';
+import { FileManager } from '../components/FileManager';
+import { DocumentViewer } from '../components/DocumentViewer';
 import dayjs from 'dayjs';
 
 const requestTypeOptions = Object.entries(REQUEST_TYPE_LABELS).map(([value, label]) => ({ value, label }));
@@ -24,6 +26,9 @@ export const MaterialRequestFormPage: FC = () => {
   const [costTypes, setCostTypes] = useState<ICostType[]>([]);
   const [items, setItems] = useState<IMaterialRequestItem[]>([{ sort_order: 0 }]);
   const [users, setUsers] = useState<IUser[]>([]);
+  const [files, setFiles] = useState<IMaterialRequestFile[]>([]);
+  const [viewerFile, setViewerFile] = useState<IMaterialRequestFile | null>(null);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [comments, setComments] = useState<IMaterialRequestComment[]>([]);
   const [commentText, setCommentText] = useState('');
   const [commentAuthor, setCommentAuthor] = useState<string | undefined>();
@@ -61,10 +66,11 @@ export const MaterialRequestFormPage: FC = () => {
   const loadRequest = useCallback(async () => {
     if (isNew) return;
     try {
-      const [req, reqItems, reqComments] = await Promise.all([
+      const [req, reqItems, reqComments, reqFiles] = await Promise.all([
         api.get(`/api/v1/material-requests/${id}`),
         api.get(`/api/v1/material-requests/${id}/items`),
         api.get(`/api/v1/material-requests/${id}/comments`),
+        api.get(`/api/v1/material-requests/${id}/files`),
       ]);
       form.setFieldsValue({
         project_id: req.project_id,
@@ -82,6 +88,7 @@ export const MaterialRequestFormPage: FC = () => {
       setManualEstimate(!!req.manual_estimate_section);
       if (req.project_id) loadSections(req.project_id);
       setItems(reqItems.length > 0 ? reqItems : [{ sort_order: 0 }]);
+      setFiles(reqFiles);
       setComments(reqComments);
     } catch { message.error('Ошибка загрузки заявки'); }
   }, [id, isNew, form]);
@@ -406,6 +413,22 @@ export const MaterialRequestFormPage: FC = () => {
           </Button>
         )}
       </Space>
+
+      <Divider>Документы</Divider>
+      <Card size="small" style={{ maxWidth: 800 }}>
+        <FileManager
+          requestId={isNew ? undefined : id}
+          files={files}
+          onFilesChange={loadRequest}
+          onViewFile={(f) => { setViewerFile(f); setViewerOpen(true); }}
+        />
+      </Card>
+
+      <DocumentViewer
+        file={viewerFile}
+        open={viewerOpen}
+        onClose={() => { setViewerOpen(false); setViewerFile(null); }}
+      />
 
       <Divider>Комментарии</Divider>
       <Card size="small" style={{ maxWidth: 800 }}>
